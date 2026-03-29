@@ -2,6 +2,7 @@ services:
   yam4bot:
     build:
       context: .
+    restart: unless-stopped
     env_file: ".env"
     volumes:
       - bot_db:/app/data/
