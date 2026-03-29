@@ -45,6 +45,16 @@ The bot uses a small SQLite database to cache already uploaded audio files. It s
 
 This avoids re-uploading the same track every time.
 
+### Logging level
+
+You can control logging verbosity via the `LOG_LEVEL` environment variable. Common values:
+
+- `DEBUG`
+- `INFO`
+- `WARNING`
+- `ERROR`
+- `CRITICAL`
+
 ### Run using Docker
 
 ```bash
