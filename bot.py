@@ -23,7 +23,17 @@ from aiogram.filters import Command
 
 TOKEN = config.TG_TOKEN
 
-logging.basicConfig(level=logging.DEBUG)
+def _resolve_log_level(raw: str) -> int:
+    value = (raw or "").strip().upper()
+    if not value:
+        return logging.INFO
+    if hasattr(logging, value):
+        return getattr(logging, value)
+    try:
+        return int(value)
+    except ValueError:
+        return logging.INFO
+
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -177,5 +187,5 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    logging.basicConfig(level=_resolve_log_level(config.LOG_LEVEL), stream=sys.stdout)
     asyncio.run(main())
