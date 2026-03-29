@@ -128,6 +128,9 @@ async def inline_search_audio(inline_query: InlineQuery):
             items.append(ymtrack_as_inline_result(track))
     else:
         result = yamusic.search(query=query)
+        if not result:
+            logging.warning("Search returned no results for query: %s", query)
+            result = []
 
         items = [ymtrack_as_inline_result(track) for track in result[:20]]
 
