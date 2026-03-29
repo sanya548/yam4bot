@@ -38,6 +38,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
 
+# Install procps to enable healthchecks (pgrep).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends procps \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy the source code into the container.
 COPY . .
 
