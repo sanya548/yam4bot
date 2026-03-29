@@ -28,6 +28,29 @@ logging.basicConfig(level=logging.DEBUG)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 result_ids = {}  # Hash array Result_ID => Track_Id
+_allowed_user_ids = set()
+
+
+def _parse_allowed_user_ids(raw: str) -> set[int]:
+    parts = re.split(r"[,\s]+", raw.strip())
+    ids = set()
+    for part in parts:
+        if not part:
+            continue
+        try:
+            ids.add(int(part))
+        except ValueError:
+            logging.warning("Invalid user id in ALLOWED_USER_IDS: %s", part)
+    return ids
+
+
+if config.ALLOWED_USER_IDS:
+    _allowed_user_ids = _parse_allowed_user_ids(config.ALLOWED_USER_IDS)
+
+
+def _is_allowed_user(user_id: int) -> bool:
+    # If allowlist is empty, deny by default for safety
+    return user_id in _allowed_user_ids
 
 
 def get_loading_markup(track_id: str | int):
@@ -62,12 +85,22 @@ def ymtrack_as_inline_result(
 
 @dp.message(Command(commands="upload_placeholder"))
 async def upload_placeholder(message: Message):
+    if not _is_allowed_user(message.from_user.id):
+        return
     result = await message.reply_audio(FSInputFile("./tagmp3_crank-2.mp3"))
     await message.reply(result.audio.file_id)
 
 
 @dp.inline_query()
 async def inline_search_audio(inline_query: InlineQuery):
+    if not _is_allowed_user(inline_query.from_user.id):
+        await bot.answer_inline_query(
+            inline_query.id,
+            results=[],
+            cache_time=5,
+            is_personal=True,
+        )
+        return
     items = []
     query = inline_query.query
 
@@ -93,6 +126,8 @@ async def inline_search_audio(inline_query: InlineQuery):
 
 @dp.chosen_inline_result()
 async def chosen_track(chosen_inline_result: ChosenInlineResult):
+    if not _is_allowed_user(chosen_inline_result.from_user.id):
+        return
     result_id = chosen_inline_result.result_id
     if result_id in result_ids:
         track_id = result_ids[result_id]

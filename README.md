@@ -33,6 +33,7 @@ After gathering the information, clone the repo and place the tokens in an `./.e
 TG_TOKEN="some:text"
 YAM_TOKEN="y0_other_text"
 DUMP_CHAT_ID="-000000000"
+ALLOWED_USER_IDS="123456789,987654321"
 ```
 
 ### Run using Docker
