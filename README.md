@@ -36,6 +36,15 @@ DUMP_CHAT_ID="-000000000"
 ALLOWED_USER_IDS="123456789,987654321"
 ```
 
+### What is stored in the database
+
+The bot uses a small SQLite database to cache already uploaded audio files. It stores a mapping between:
+
+- `yam_id`: Yandex Music track id
+- `tg_file_id`: Telegram `file_id` of the pre-uploaded audio
+
+This avoids re-uploading the same track every time.
+
 ### Run using Docker
 
 ```bash
