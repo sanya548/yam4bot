@@ -6,6 +6,8 @@ services:
     env_file: ".env"
     volumes:
       - bot_db:/app/data/
+    networks:
+      - traefik
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f \"python3 bot.py\" > /dev/null"]
       interval: 30s
@@ -15,3 +17,7 @@ services:
 
 volumes:
   bot_db:
+
+networks:
+  traefik:
+    external: true

@@ -9,6 +9,9 @@ import config
 
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiohttp_socks import ProxyConnector
+
 from aiogram.types import (
     FSInputFile,
     InlineQuery,
@@ -35,7 +38,16 @@ def _resolve_log_level(raw: str) -> int:
         return logging.INFO
 
 
-bot = Bot(token=TOKEN)
+# bot = Bot(token=TOKEN)
+# bot = Bot(token=TOKEN, proxy={"socks5": "xAkKFUFJtj:vawrzaBuhN@3x-ui:45287"})
+
+if config.PROXY_URL:
+    connector = ProxyConnector.from_url(config.PROXY_URL)
+    session = AiohttpSession(connector=connector)
+    bot = Bot(token=TOKEN, session=session)
+else:
+    bot = Bot(token=TOKEN)
+
 dp = Dispatcher()
 result_ids = {}  # Hash array Result_ID => Track_Id
 _allowed_user_ids = set()
