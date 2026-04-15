@@ -42,10 +42,12 @@ def _resolve_log_level(raw: str) -> int:
 # bot = Bot(token=TOKEN, proxy={"socks5": "xAkKFUFJtj:vawrzaBuhN@3x-ui:45287"})
 
 if config.PROXY_URL:
+    logging.info(f"Using proxy: {config.PROXY_URL}")
     connector = ProxyConnector.from_url(config.PROXY_URL)
     session = AiohttpSession(connector=connector)
     bot = Bot(token=TOKEN, session=session)
 else:
+    logging.warning("No proxy configured, connecting directly")
     bot = Bot(token=TOKEN)
 
 dp = Dispatcher()
