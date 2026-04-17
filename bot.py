@@ -38,18 +38,6 @@ def _resolve_log_level(raw: str) -> int:
         return logging.INFO
 
 
-# bot = Bot(token=TOKEN)
-# bot = Bot(token=TOKEN, proxy={"socks5": "xAkKFUFJtj:vawrzaBuhN@3x-ui:45287"})
-
-if config.PROXY_URL:
-    logging.info(f"Using proxy: {config.PROXY_URL}")
-    connector = ProxyConnector.from_url(config.PROXY_URL)
-    session = AiohttpSession(connector=connector)
-    bot = Bot(token=TOKEN, session=session)
-else:
-    logging.warning("No proxy configured, connecting directly")
-    bot = Bot(token=TOKEN)
-
 dp = Dispatcher()
 result_ids = {}  # Hash array Result_ID => Track_Id
 _allowed_user_ids = set()
@@ -108,7 +96,7 @@ def ymtrack_as_inline_result(
 
 
 @dp.message(Command(commands="upload_placeholder"))
-async def upload_placeholder(message: Message):
+async def upload_placeholder(message: Message, bot: Bot):
     if not _is_allowed_user(message.from_user.id):
         return
     result = await message.reply_audio(FSInputFile("./tagmp3_crank-2.mp3"))
@@ -116,7 +104,7 @@ async def upload_placeholder(message: Message):
 
 
 @dp.inline_query()
-async def inline_search_audio(inline_query: InlineQuery):
+async def inline_search_audio(inline_query: InlineQuery, bot: Bot):
     if not _is_allowed_user(inline_query.from_user.id):
         await bot.answer_inline_query(
             inline_query.id,
@@ -152,7 +140,7 @@ async def inline_search_audio(inline_query: InlineQuery):
 
 
 @dp.chosen_inline_result()
-async def chosen_track(chosen_inline_result: ChosenInlineResult):
+async def chosen_track(chosen_inline_result: ChosenInlineResult, bot: Bot):
     if not _is_allowed_user(chosen_inline_result.from_user.id):
         return
     result_id = chosen_inline_result.result_id
@@ -200,6 +188,15 @@ async def chosen_track(chosen_inline_result: ChosenInlineResult):
 
 
 async def main() -> None:
+    if config.PROXY_URL:
+        logging.info(f"Using proxy: {config.PROXY_URL}")
+        connector = ProxyConnector.from_url(config.PROXY_URL)
+        session = AiohttpSession(connector=connector)
+        bot = Bot(token=TOKEN, session=session)
+    else:
+        logging.warning("No proxy configured, connecting directly")
+        bot = Bot(token=TOKEN)
+
     await dp.start_polling(bot)
 
 
