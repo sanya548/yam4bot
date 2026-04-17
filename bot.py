@@ -140,50 +140,62 @@ async def inline_search_audio(inline_query: InlineQuery, bot: Bot):
 
 @dp.chosen_inline_result()
 async def chosen_track(chosen_inline_result: ChosenInlineResult, bot: Bot):
+    logging.info(f"Handling chosen track update: {chosen_inline_result.result_id} from user {chosen_inline_result.from_user.id}")
     if not _is_allowed_user(chosen_inline_result.from_user.id):
+        logging.warning(f"User {chosen_inline_result.from_user.id} is NOT allowed")
         return
     result_id = chosen_inline_result.result_id
     if result_id in result_ids:
-        track_id = result_ids[result_id]
-        track = db.get(track_id)
-        tg_file_id = str(track.tg_file_id) if track else None
-        data = yamusic.get_track_data(track_id)
-        logging.info(f"Got data: {data}")
-        if not tg_file_id:
-            # it could be that using URLInputFile will get throttled by Yandex Music, but it hasn't been the case
-            # In the event this does happen, it's safer to use FSInputFile
+        try:
+            track_id = result_ids[result_id]
+            logging.info(f"Processing track_id: {track_id}")
+            track = db.get(track_id)
+            tg_file_id = str(track.tg_file_id) if track else None
+            data = yamusic.get_track_data(track_id)
+            logging.info(f"Got track data: {data.title} by {data.artists}")
+            if not tg_file_id:
+                # it could be that using URLInputFile will get throttled by Yandex Music, but it hasn't been the case
+                # In the event this does happen, it's safer to use FSInputFile
 
-            # can't edit message and upload a file at the same time, pre-upload is required
-            # aiogram doesn't support uploading without sending atm. A dummy chat has to be created and configured
-            file = await bot.send_audio(
-                audio=URLInputFile(data.get_download_link()),
-                title=data.title,
-                performer=str(data.artists),
-                thumbnail=URLInputFile(data.cover_url),
-                duration=data.duration,
-                chat_id=config.DUMP_CHAT_ID,
+                # can't edit message and upload a file at the same time, pre-upload is required
+                # aiogram doesn't support uploading without sending atm. A dummy chat has to be created and configured
+                download_link = data.get_download_link()
+                logging.info(f"Obtained download link, sending to dump chat {config.DUMP_CHAT_ID}")
+                file = await bot.send_audio(
+                    audio=URLInputFile(download_link),
+                    title=data.title,
+                    performer=str(data.artists),
+                    thumbnail=URLInputFile(data.cover_url),
+                    duration=data.duration,
+                    chat_id=config.DUMP_CHAT_ID,
+                )
+
+                tg_file_id = file.audio.file_id
+                db.save(track_id, tg_file_id)
+                logging.info(f"Track saved to DB with file_id: {tg_file_id}")
+
+            logging.info(f"Editing inline message media: {chosen_inline_result.inline_message_id}")
+            await bot.edit_message_media(
+                media=InputMediaAudio(
+                    media=tg_file_id,
+                    title=data.title,
+                    performer=str(data.artists),
+                    thumbnail=URLInputFile(data.cover_url),
+                    duration=data.duration,
+                ),
+                inline_message_id=chosen_inline_result.inline_message_id,
             )
-
-            tg_file_id = file.audio.file_id
-            db.save(track_id, tg_file_id)
-
-        await bot.edit_message_media(
-            media=InputMediaAudio(
-                media=tg_file_id,
-                title=data.title,
-                performer=str(data.artists),
-                thumbnail=URLInputFile(data.cover_url),
-                duration=data.duration,
-            ),
-            inline_message_id=chosen_inline_result.inline_message_id,
-        )
-        await bot.edit_message_caption(
-            inline_message_id=chosen_inline_result.inline_message_id,
-            caption=f"<a href='{data.link}'>Yandex Music</a>\n<a href='{f'odesli.co/{data.link}'}'>song.link</a>",
-            parse_mode="HTML",
-        )
+            await bot.edit_message_caption(
+                inline_message_id=chosen_inline_result.inline_message_id,
+                caption=f"<a href='{data.link}'>Yandex Music</a>\n<a href='{f'odesli.co/{data.link}'}'>song.link</a>",
+                parse_mode="HTML",
+            )
+            logging.info("Successfully update inline message")
+        except Exception as e:
+            logging.exception(f"Error in chosen_track: {e}")
     else:
-        raise ("Unknown result id")
+        logging.error(f"Unknown result id: {result_id}. Current result_ids: {list(result_ids.keys())}")
+        # raise ("Unknown result id") - disabled to avoid crash
 
 
 async def main() -> None:

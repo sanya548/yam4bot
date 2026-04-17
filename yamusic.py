@@ -5,7 +5,7 @@ import config
 
 from yandex_music import Client, Track as YMTrack
 
-client = Client(config.YAM_TOKEN).init()
+client = Client(config.YAM_TOKEN, proxy=config.PROXY_URL).init()
 
 
 @dataclass
