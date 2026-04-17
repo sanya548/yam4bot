@@ -10,7 +10,6 @@ import config
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.session.aiohttp import AiohttpSession
-from aiohttp_socks import ProxyConnector
 
 from aiogram.types import (
     FSInputFile,
@@ -190,8 +189,7 @@ async def chosen_track(chosen_inline_result: ChosenInlineResult, bot: Bot):
 async def main() -> None:
     if config.PROXY_URL:
         logging.info(f"Using proxy: {config.PROXY_URL}")
-        connector = ProxyConnector.from_url(config.PROXY_URL)
-        session = AiohttpSession(connector=connector)
+        session = AiohttpSession(proxy=config.PROXY_URL)
         bot = Bot(token=TOKEN, session=session)
     else:
         logging.warning("No proxy configured, connecting directly")
