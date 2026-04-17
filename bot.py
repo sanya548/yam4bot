@@ -20,6 +20,7 @@ from aiogram.types import (
     InlineQueryResultAudio,
     URLInputFile,
     BufferedInputFile,
+    Update,
 )
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types import InputMediaAudio
@@ -234,7 +235,13 @@ async def main() -> None:
         logging.warning("No proxy configured, connecting directly")
         bot = Bot(token=TOKEN)
 
-    await dp.start_polling(bot)
+    # Automatically resolve allowed update types based on registered handlers
+    allowed_updates = dp.resolve_used_update_types()
+    if "chosen_inline_result" not in allowed_updates:
+        allowed_updates.append("chosen_inline_result")
+    
+    logging.info(f"Starting polling with allowed updates: {allowed_updates}")
+    await dp.start_polling(bot, allowed_updates=allowed_updates)
 
 
 if __name__ == "__main__":
