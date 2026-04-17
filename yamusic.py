@@ -5,7 +5,13 @@ import config
 
 from yandex_music import Client, Track as YMTrack
 
-client = Client(config.YAM_TOKEN, proxy=config.PROXY_URL).init()
+import os
+
+if config.PROXY_URL:
+    os.environ['HTTP_PROXY'] = config.PROXY_URL
+    os.environ['HTTPS_PROXY'] = config.PROXY_URL
+
+client = Client(config.YAM_TOKEN).init()
 
 
 @dataclass

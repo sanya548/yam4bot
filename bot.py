@@ -3,6 +3,7 @@ import hashlib
 import re
 import sys
 import asyncio
+import aiohttp
 import db
 import yamusic
 import config
@@ -18,6 +19,7 @@ from aiogram.types import (
     ChosenInlineResult,
     InlineQueryResultAudio,
     URLInputFile,
+    BufferedInputFile,
 )
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types import InputMediaAudio
@@ -160,12 +162,37 @@ async def chosen_track(chosen_inline_result: ChosenInlineResult, bot: Bot):
                 # can't edit message and upload a file at the same time, pre-upload is required
                 # aiogram doesn't support uploading without sending atm. A dummy chat has to be created and configured
                 download_link = data.get_download_link()
-                logging.info(f"Obtained download link, sending to dump chat {config.DUMP_CHAT_ID}")
+                logging.info(f"Downloading track from Yandex...")
+                
+                # Use Bot's proxy for download as well
+                proxy = config.PROXY_URL if config.PROXY_URL else None
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(download_link, proxy=proxy) as resp:
+                        if resp.status != 200:
+                            raise Exception(f"Failed to download audio: status {resp.status}")
+                        audio_bytes = await resp.read()
+                
+                audio_file = BufferedInputFile(audio_bytes, filename=f"{track_id}.mp3")
+
+                # Thumbnail download
+                thumbnail_file = None
+                if data.cover_url:
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(data.cover_url, proxy=proxy) as resp:
+                                if resp.status == 200:
+                                    thumb_bytes = await resp.read()
+                                    thumbnail_file = BufferedInputFile(thumb_bytes, filename="thumb.jpg")
+                    except Exception as e:
+                        logging.warning(f"Failed to download thumbnail: {e}")
+
+                logging.info(f"Sending audio to dump chat {config.DUMP_CHAT_ID}")
                 file = await bot.send_audio(
-                    audio=URLInputFile(download_link),
+                    audio=audio_file,
                     title=data.title,
                     performer=str(data.artists),
-                    thumbnail=URLInputFile(data.cover_url),
+                    thumbnail=thumbnail_file,
                     duration=data.duration,
                     chat_id=config.DUMP_CHAT_ID,
                 )
